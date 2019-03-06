@@ -4,6 +4,8 @@ import qualified Lexer as L
 import Parser
 import System.Environment
 import System.Exit
+import QBF
+import Picosat
 
 main = do
     args <- getArgs
@@ -16,9 +18,14 @@ main = do
 --parse _  = parse ["-h"]
 
 test path = do
-    input <- readFile path
-    print $ L.alexScanTokens input
-    print $ parseQDIMACS $ L.alexScanTokens input
+    input <- readFile path    
+    let problem = parseQDIMACS $ L.alexScanTokens input
+    solution <- solve $ toPicosat $ clauses $ qbf problem
+    print  $ findUnitLiterals $ qbf problem
+    print $ findPureLiterals $ qbf problem
+    --print units
+    --print problem
+    --print solution
 
 testLoc :: FilePath
 testLoc = "/mnt/win/Documenten/TUW/Ringvorlesung/QBF/test/small/mini"

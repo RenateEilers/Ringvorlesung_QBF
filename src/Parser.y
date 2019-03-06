@@ -25,22 +25,22 @@ int     {L.TokenInt $$}
 
 Problem : p cnf int int QBF                     {Problem $3 $4 $5}
 
-QBF : Prefix ClauseSet                          {QBF $1 $2}
+QBF : QuantifierSet QuantifierSet ClauseSet    {QBF ($1,$2) $3}
 
-Prefix : Rev_Prefix                             {reverse $1}
+--Prefix : Rev_Prefix                             {reverse $1}
 
-Rev_Prefix : QuantifierSet                      {[$1]}
-        | Rev_Prefix QuantifierSet              {$2:$1}
+--Rev_Prefix : QuantifierSet                      {[$1]}
+--        | Rev_Prefix QuantifierSet              {$2:$1}
 
 QuantifierSet : a AtomSet                    {Forall $2}
             | e AtomSet                      {Exists $2}
              --| p cnf int '0''-' a e {Exists Set.empty}
  
-ClauseSet : Clause                              {Set.singleton $1}
-        | ClauseSet Clause                     {Set.insert $2 $1}
+ClauseSet : Clause                              {[$1]}
+        | Clause ClauseSet                     {$1 : $2}
 
-Clause : '0'                                    {Set.empty}
-    | Literal Clause                            {Set.insert $1 $2}
+Clause : '0'                                    {[]}
+    | Literal Clause                            {$1 : $2}
 
 AtomSet : '0'                                   {Set.empty}
         | Atom AtomSet                          {Set.insert $1 $2}
