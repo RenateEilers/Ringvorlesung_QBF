@@ -33,8 +33,13 @@ data QBF = QBF {quantifiers :: (Quantifier,Quantifier),
 
 toPicosat :: [Clause]-> [[Int]]
 toPicosat cs = map (map fromLiteral)  cs
-    where   fromLiteral (Pos v) = name v
-            fromLiteral (Neg v) = - name v
+
+toLiteral :: Int -> Literal
+toLiteral i = if i > 0 then Pos $ Var i else Neg $ Var i
+
+fromLiteral :: Literal -> Int
+fromLiteral (Pos v) = name v
+fromLiteral (Neg v) = - name v
 
 complement :: Literal -> Literal
 complement (Pos v) = Neg v

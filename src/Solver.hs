@@ -22,11 +22,14 @@ getSolution cls assums =  do
             where f (Solution s) = (SAT,s)
                   f _            = (UNSAT,[])
 
-negateQBF :: Int -> [Clause] -> (Int,[Clause])
---negateQBF v (QBF qs cls) = undefined 
-negateQBF v cls = foldr f (v,[]) cls
-    where   f cl (i,r)  = (i+1, (concatMap (g i) cl : r))
-            g i lit     = [(Neg  $ Var i), lit]
+negateQBFwithAsgs:: Int -> [Literal] -> [Clause] -> (Int,[Clause])
+negateQBFwithAsgs v asgs cls = foldr f (v,[]) cls
+    where   f cl (i,cls) = undefined
+            
+
+negateClause :: Literal -> Clause -> [Clause]
+negateClause freshLit cl = foldr f [] cl
+    where f lit cls  = [freshLit,complement lit] : cls
 
 -- For each clause:
 --      1) update according to assignment.
@@ -54,7 +57,7 @@ expansionSolveSub p alpha psi = do
         if resTau == UNSAT
             then return UNSAT 
             else do
-                let (vars,notPhiTau) = negateQBF (num_atoms p) q
+                let (vars,notPhiTau) = negateQBFwithAsgs (num_atoms p) (map toLiteral tau) q
                 let psi' = psi ++ notPhiTau
                 (resAlpha,alpha') <- getSolution psi tau
                 if resAlpha == UNSAT
@@ -65,3 +68,4 @@ expansionSolveSub p alpha psi = do
         
 
 
+                        
