@@ -1,5 +1,8 @@
 {
 module Parser where
+-- TODO:
+--  Produce sensible parse errors
+--  Parse exactly two distinct quantifiers
 
 import QBF
 import qualified Lexer as L
@@ -27,14 +30,8 @@ Problem : p cnf int int QBF                     {Problem $3 $4 $5}
 
 QBF : QuantifierSet QuantifierSet ClauseSet    {QBF ($1,$2) $3}
 
---Prefix : Rev_Prefix                             {reverse $1}
-
---Rev_Prefix : QuantifierSet                      {[$1]}
---        | Rev_Prefix QuantifierSet              {$2:$1}
-
 QuantifierSet : a AtomSet                    {Forall $2}
-            | e AtomSet                      {Exists $2}
-             --| p cnf int '0''-' a e {Exists Set.empty}
+            | e AtomSet                      {Exists $2}             
  
 ClauseSet : Clause                              {[$1]}
         | Clause ClauseSet                     {$1 : $2}
@@ -56,7 +53,6 @@ Literal : Atom                                  {Pos $1}
 
 {
 parseError :: [L.Token] -> a
-parseError t = error $ "Parse error" ++ show t
+parseError t = error $ "Parse error:" ++ show t
 
-    --main = getContents >>= print . L.lexer
 }

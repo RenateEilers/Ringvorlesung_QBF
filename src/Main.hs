@@ -20,13 +20,28 @@ main = do
 test path = do
     input <- readFile path    
     let problem = parseQDIMACS $ L.alexScanTokens input
-    solution <- solve $ toPicosat $ clauses $ qbf problem
-    print  $ findUnitLiterals $ qbf problem
-    print $ findPureLiterals $ qbf problem
-    --print units
-    --print problem
-    --print solution
+    let q = qbf problem    
+    putStrLn "Original QBF: "
+    print q
+    putStr "Pure literals: "
+    print $ findPureLiterals $ q
+    putStrLn "After pureLiteralElimination: "
+    let ple = pureLiteralElimination q
+    print ple
+    putStr "Unit literals: "
+    print  $ findUnitLiterals $ q
+    putStrLn "After unit literal elimination: "
+    let ule = unitLiteralElimination q
+    print ule
+    putStrLn "picosat:"
+    print $ toPicosat $ clauses ule
+    sol <- evalScopedPicosat $ do
+            addBaseClauses $ toPicosat $ clauses ule
+            scopedSolutionWithAssumptions [-3]
+    putStrLn "sol:"
+    print sol        
 
 testLoc :: FilePath
 testLoc = "/mnt/win/Documenten/TUW/Ringvorlesung/QBF/test/small/mini"
 
+bigLoc = "/mnt/win/Documenten/TUW/Ringvorlesung/QBF/test/eval17/2QBF/add20y.sat.qdimacs"
