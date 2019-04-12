@@ -10,7 +10,7 @@ import Data.Maybe
 
 data Problem = Problem {num_atoms :: Int,
                         num_clauses :: Int,
-                        qbf :: QBF} deriving (Eq, Show, Ord)
+                        qbf :: QBF} deriving (Eq, Ord)
 
 type ID = Int
 
@@ -35,7 +35,7 @@ toPicosat :: [Clause]-> [[Int]]
 toPicosat cs = map (map fromLiteral)  cs
 
 toLiteral :: Int -> Literal
-toLiteral i = if i > 0 then Pos $ Var i else Neg $ Var i
+toLiteral i = if i > 0 then Pos $ Var i else Neg $ Var (- i)
 
 fromLiteral :: Literal -> Int
 fromLiteral (Pos v) = name v
@@ -63,8 +63,8 @@ existentials form = g $ quantifiers form
             g _               = S.empty
 
 
-univerals :: QBF -> S.Set Variable
-univerals form = g $ quantifiers form
+universals :: QBF -> S.Set Variable
+universals form = g $ quantifiers form
     where   g (Forall v,_)    = v
             g (_,Forall v)    = v
             g _               = S.empty
@@ -121,7 +121,7 @@ removeQuantifiers test (QBF (q1,q2) cls) = QBF (f q1,f q2) cls
 pureLiteralElimination :: QBF -> QBF
 pureLiteralElimination form = removeQuantifiers h . removeLiterals f . removeClauses g $ form
     where   purLits = findPureLiterals form
-            (uP,eP) = partition (\l -> atom l `elem` univerals form) purLits
+            (uP,eP) = partition (\l -> atom l `elem` universals form) purLits
             g cl    = any (flip elem cl) eP
             f lit   = lit `elem` uP
             h v     = Pos v `elem` purLits || Neg v `elem` purLits
@@ -161,3 +161,5 @@ instance Show QBF where
         ++ foldr f "" cls
             where f cl r = foldr g "0\n" cl ++ r
                   g l r = show l ++ " " ++ r
+instance Show Problem where
+    show (Problem v q f) = "p cnf " ++ show v ++ " " ++ show q ++ "\n" ++ show f

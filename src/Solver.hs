@@ -1,6 +1,9 @@
 module Solver where
 import QBF
 import Picosat
+import Data.List
+import Data.Set (toList)
+import System.Random 
 
 -------------------------------------------------------------------------------
 --                     Data declarations 
@@ -22,50 +25,104 @@ getSolution cls assums =  do
             where f (Solution s) = (SAT,s)
                   f _            = (UNSAT,[])
 
-negateQBFwithAsgs:: Int -> [Literal] -> [Clause] -> (Int,[Clause])
-negateQBFwithAsgs v asgs cls = foldr f (v,[]) cls
-    where   f cl (i,cls) = undefined
-            
+--negateQBFwithAsgs:: Int -> [Literal] -> [Clause] -> (Int,[Clause])
+--negateQBFwithAsgs v asgs cls = freshVars $ foldr f (v,[]) cls
+----negateQBFwithAsgs v asgs cls = freshVars $ foldr f (v,[]) cls
+--    where   f cl (i,clss) = (i+1,(negateClause (toLiteral (-(i+1))) cl) ++ clss )
+--            --cls'         = map (filter $ not . h) . filter (null . intersect asgs) $ cls            
+--            --cls'         =  filter (null . intersect asgs) $ cls            
+--            --h            = flip elem compAsgs
+--            --compAsgs     = map complement asgs
+--            freshVars (i,cls) = (i,(map toLiteral [v+1..i]) : cls)
+
+negateQBF:: Int -> [Clause] -> (Int,[Clause])
+negateQBF v cls = freshVars $ foldr f (v,[]) cls
+    where   f cl (i,clss) = (i+1,(negateClause (toLiteral (-(i+1))) cl) ++ clss )            
+            freshVars (i,cls) = (i,(map toLiteral [v+1..i]) : cls)
 
 negateClause :: Literal -> Clause -> [Clause]
 negateClause freshLit cl = foldr f [] cl
     where f lit cls  = [freshLit,complement lit] : cls
 
--- For each clause:
---      1) update according to assignment.
---            i.e., if clause contians l that is in assignment, remove clause
---                  if clause contians ~l that is in assignment, remove l
---      2) add fresh var implying not clause (x -> ~C) = ~x || ~C = ~x || (forall c in C) &&~c = 
---      3) add big clause containing all fresh variables 
-
-assignVars :: [Int] -> [Clause] -> [Clause]
-assignVars asgs cls = undefined
-                
-
-
+assignVars :: [Literal] -> [Clause] ->  [Clause]
+assignVars lits cls =  map (filter $ not . h) . filter (null . intersect lits) $ cls            
+    where h        = flip elem $ map complement lits
+          
 -------------------------------------------------------------------------------
 --                      Expansion-based solving
 -------------------------------------------------------------------------------
 
 expansionSolve :: Problem -> SolverResult
-expansionSolve q = expansionSolveSub q [] []
+expansionSolve p = do   g <- getStdGen
+                        let r = repeat 1 --randomRs (0,1 :: Int) g
+                        let us = toList $ universals $ qbf p 
+                        let alpha = zipWith f r us                        
+                        expansionSolveSub p alpha []
+        where   f i v = if (i == 0) then -(name v) else name v
+
 
 expansionSolveSub :: Problem -> [Int] -> [Clause] -> SolverResult
 expansionSolveSub p alpha psi = do
         let q = clauses $ qbf p
-        (resTau,tau) <- getSolution q alpha        
+        (resTau,tau') <- getSolution q alpha   
+        let tau = (filter (flip elem (existentials $ qbf p) . atom . toLiteral)  tau')                             
+        putStr "alpha: "
+        print alpha 
+        putStr "psi: "
+        print psi
+        putStr "tau:"
+        print tau     
         if resTau == UNSAT
             then return UNSAT 
-            else do
-                let (vars,notPhiTau) = negateQBFwithAsgs (num_atoms p) (map toLiteral tau) q
-                let psi' = psi ++ notPhiTau
-                (resAlpha,alpha') <- getSolution psi tau
+            else do                                     
+                let (numVars,notP) = negateQBF (num_atoms p) q                        
+                let notPTau = assignVars (map toLiteral tau) $ notP
+                let psi' = psi ++ notPTau
+                print $ negateQBF (num_atoms p) q
+                putStr "psi': "
+                print psi' 
+                (resAlpha,alphaAll) <- getSolution psi' []
+                putStr "alpha': "  
+                let alpha' = filter (flip elem (universals $ qbf p) . atom . toLiteral)  alphaAll                               
+                print alpha'                
                 if resAlpha == UNSAT
-                    then return SAT
-                    else do
-                        let p' = Problem vars (num_clauses p) (qbf p)
+                    then return SAT                    
+                    else do 
+                        let p' = Problem numVars (num_clauses p) (qbf p) 
                         expansionSolveSub p' alpha' psi'
+
+
+
+
+--expansionSolveSub :: Problem -> [Clause] -> [Int] -> [Clause] ->  SolverResult
+--expansionSolveSub p notP alpha psi = do
+--        let q = clauses $ qbf p
+--        (resTau,tau) <- getSolution q alpha   
+--        putStr "alpha: "
+--        print alpha 
+--        putStr "psi: "
+--        print psi
+--        putStr "tau:"
+--        print tau     
+--        if resTau == UNSAT
+--            then return UNSAT 
+--            else do                
+--                putStr "existentials tau: "
+--                let exTau = (filter (flip elem (existentials $ qbf p) . atom . toLiteral)  tau)                            
+--                print exTau                
+--                --let (vars,notPhiTau) = negateQBF (num_atoms p) (filter (flip elem (existentials $ qbf p) . atom) $ map toLiteral tau) q 
+--                let psi' = psi ++ notP
+--                putStr "psi'"
+--                print psi'
+--                (resAlpha,alpha') <- getSolution psi' exTau   
+--                print alpha'
+--                putStr "alpha'': "  
+--                let alpha'' = filter (flip elem (universals $ qbf p) . atom . toLiteral)  alpha'                               
+--                print alpha''
+--                if resAlpha == UNSAT
+--                    then return SAT
+--                    else do expansionSolveSub p notP alpha'' psi'
         
+        -- update: notphi with only existential vars; assumptions for alpha part
+        -- add existentialvars to QBF
 
-
-                        
