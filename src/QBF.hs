@@ -29,8 +29,6 @@ data QBF = QBF {quantifiers :: (Quantifier,Quantifier),
 --  Optimize: create generic, composable functions that prevent
 --  the need for multiple traversals 
 
--- Output 
-
 toPicosat :: [Clause]-> [[Int]]
 toPicosat cs = map (map fromLiteral)  cs
 
@@ -62,7 +60,6 @@ existentials form = g $ quantifiers form
             g (_,Exists v)    = v
             g _               = S.empty
 
-
 universals :: QBF -> S.Set Variable
 universals form = g $ quantifiers form
     where   g (Forall v,_)    = v
@@ -93,9 +90,6 @@ findPureLiterals form = filter f lits
 
            
 -- Functions for updating QBFs
--- TODO:
---  Use lenses instead?
-
 removeClauses :: (Clause -> Bool) -> QBF -> QBF
 removeClauses test (QBF qs cls) = QBF qs cls'
     where   cls' = filter (not . test) cls
@@ -118,23 +112,25 @@ removeQuantifiers test (QBF (q1,q2) cls) = QBF (f q1,f q2) cls
 --  Optimize: create generic, composable functions that prevent
 --  the need for multiple traversals (applies to auxiliary functions, too)
 
-pureLiteralElimination :: QBF -> QBF
-pureLiteralElimination form = removeQuantifiers h . removeLiterals f . removeClauses g $ form
-    where   purLits = findPureLiterals form
+pureLiteralElimination :: Problem -> Problem
+pureLiteralElimination (Problem a c form) = Problem a c form'    
+    where   form'   = removeQuantifiers h . removeLiterals f . removeClauses g $ form
+            purLits = findPureLiterals form
             (uP,eP) = partition (\l -> atom l `elem` universals form) purLits
             g cl    = any (flip elem cl) eP
             f lit   = lit `elem` uP
             h v     = Pos v `elem` purLits || Neg v `elem` purLits
 
-unitLiteralElimination :: QBF -> QBF
-unitLiteralElimination form = removeQuantifiers h . removeLiterals f . removeClauses g $ form
-    where   unitLiterals = findUnitLiterals form
+unitLiteralElimination :: Problem -> Problem
+unitLiteralElimination (Problem a c form) = Problem a c form'    
+    where   form'   = removeQuantifiers h . removeLiterals f . removeClauses g $ form
+            unitLiterals = findUnitLiterals form
             g cl         = any (flip elem cl) unitLiterals
             f lit        = complement lit `elem` unitLiterals
             h v          = Pos v `elem` unitLiterals || Neg v `elem` unitLiterals
 
 -- TODO
-universalReduction :: QBF -> QBF
+universalReduction :: Problem -> Problem
 universalReduction = undefined
 
 
@@ -147,7 +143,7 @@ instance Show Variable where
     show (Var v) = show v
 
 instance Show Literal where
-    show (Pos v) = show v
+    show (Pos v) = " " ++ show v
     show (Neg v) = "-" ++ show v
 
 instance Show Quantifier where

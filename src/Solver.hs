@@ -25,16 +25,6 @@ getSolution cls assums =  do
             where f (Solution s) = (SAT,s)
                   f _            = (UNSAT,[])
 
---negateQBFwithAsgs:: Int -> [Literal] -> [Clause] -> (Int,[Clause])
---negateQBFwithAsgs v asgs cls = freshVars $ foldr f (v,[]) cls
-----negateQBFwithAsgs v asgs cls = freshVars $ foldr f (v,[]) cls
---    where   f cl (i,clss) = (i+1,(negateClause (toLiteral (-(i+1))) cl) ++ clss )
---            --cls'         = map (filter $ not . h) . filter (null . intersect asgs) $ cls            
---            --cls'         =  filter (null . intersect asgs) $ cls            
---            --h            = flip elem compAsgs
---            --compAsgs     = map complement asgs
---            freshVars (i,cls) = (i,(map toLiteral [v+1..i]) : cls)
-
 negateQBF:: Int -> [Clause] -> (Int,[Clause])
 negateQBF v cls = freshVars $ foldr f (v,[]) cls
     where   f cl (i,clss) = (i+1,(negateClause (toLiteral (-(i+1))) cl) ++ clss )            
@@ -66,63 +56,27 @@ expansionSolveSub p alpha psi = do
         let q = clauses $ qbf p
         (resTau,tau') <- getSolution q alpha   
         let tau = (filter (flip elem (existentials $ qbf p) . atom . toLiteral)  tau')                             
-        putStr "alpha: "
-        print alpha 
-        putStr "psi: "
-        print psi
-        putStr "tau:"
-        print tau     
+        --putStr "alpha: "
+        --print alpha 
+        --putStr "psi: "
+        --print psi
+        --putStr "tau:"
+        --print tau     
         if resTau == UNSAT
             then return UNSAT 
             else do                                     
                 let (numVars,notP) = negateQBF (num_atoms p) q                        
                 let notPTau = assignVars (map toLiteral tau) $ notP
                 let psi' = psi ++ notPTau
-                print $ negateQBF (num_atoms p) q
-                putStr "psi': "
-                print psi' 
+                --print $ negateQBF (num_atoms p) q
+                --putStr "psi': "
+                --print psi' 
                 (resAlpha,alphaAll) <- getSolution psi' []
-                putStr "alpha': "  
+                --putStr "alpha': "  
                 let alpha' = filter (flip elem (universals $ qbf p) . atom . toLiteral)  alphaAll                               
-                print alpha'                
+                --print alpha'                
                 if resAlpha == UNSAT
                     then return SAT                    
                     else do 
                         let p' = Problem numVars (num_clauses p) (qbf p) 
                         expansionSolveSub p' alpha' psi'
-
-
-
-
---expansionSolveSub :: Problem -> [Clause] -> [Int] -> [Clause] ->  SolverResult
---expansionSolveSub p notP alpha psi = do
---        let q = clauses $ qbf p
---        (resTau,tau) <- getSolution q alpha   
---        putStr "alpha: "
---        print alpha 
---        putStr "psi: "
---        print psi
---        putStr "tau:"
---        print tau     
---        if resTau == UNSAT
---            then return UNSAT 
---            else do                
---                putStr "existentials tau: "
---                let exTau = (filter (flip elem (existentials $ qbf p) . atom . toLiteral)  tau)                            
---                print exTau                
---                --let (vars,notPhiTau) = negateQBF (num_atoms p) (filter (flip elem (existentials $ qbf p) . atom) $ map toLiteral tau) q 
---                let psi' = psi ++ notP
---                putStr "psi'"
---                print psi'
---                (resAlpha,alpha') <- getSolution psi' exTau   
---                print alpha'
---                putStr "alpha'': "  
---                let alpha'' = filter (flip elem (universals $ qbf p) . atom . toLiteral)  alpha'                               
---                print alpha''
---                if resAlpha == UNSAT
---                    then return SAT
---                    else do expansionSolveSub p notP alpha'' psi'
-        
-        -- update: notphi with only existential vars; assumptions for alpha part
-        -- add existentialvars to QBF
-
